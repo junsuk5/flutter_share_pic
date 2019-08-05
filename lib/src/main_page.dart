@@ -1,12 +1,36 @@
 import 'dart:io';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_share_pic/src/map_page.dart';
+import 'package:flutter_share_pic/src/upload_page.dart';
 import 'package:image_picker/image_picker.dart';
 
 class MainPage extends StatelessWidget {
   Future<File> getImage() {
     return ImagePicker.pickImage(source: ImageSource.gallery);
+  }
+
+  Future _uploadImage(file) async {
+    final StorageReference storageReference =
+        FirebaseStorage().ref().child('images/abcd.jpg');
+    final StorageUploadTask uploadTask = storageReference.putFile(file);
+
+    if (uploadTask.isComplete) {
+      if (uploadTask.isSuccessful) {
+        print('successful');
+      } else if (uploadTask.isCanceled) {
+        print('canceled');
+      }
+    } else if (uploadTask.isInProgress) {
+      print('uploading');
+    }
+
+    return storageReference.getDownloadURL();
+  }
+
+  _moveUploadPage(file) {
+
   }
 
   @override
@@ -19,28 +43,41 @@ class MainPage extends StatelessWidget {
               title: const Text('사진 업로드'),
               children: <Widget>[
                 SimpleDialogOption(
-                  onPressed: () { Navigator.pop(context, 'pick'); },
+                  onPressed: () {
+                    Navigator.pop(context, 'pick');
+                  },
                   child: const Text('사진선택'),
                 ),
                 SimpleDialogOption(
-                  onPressed: () { Navigator.pop(context, 'take'); },
+                  onPressed: () {
+                    Navigator.pop(context, 'take');
+                  },
                   child: const Text('사진찍기'),
                 ),
               ],
             );
-          }
-      )) {
+          })) {
         case 'pick':
           var image = await ImagePicker.pickImage(source: ImageSource.gallery);
+//          var uri = await _uploadImage(image);
           print(image);
-        // Let's go.
-        // ...
 
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UploadPage(image: image),
+            ),
+          );
           break;
         case 'take':
           var image = await ImagePicker.pickImage(source: ImageSource.camera);
-          print(image);
-        // ...
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UploadPage(image: image),
+            ),
+          );
           break;
       }
     }
@@ -78,4 +115,3 @@ class MainPage extends StatelessWidget {
     );
   }
 }
-
