@@ -34,22 +34,26 @@ class MainPage extends StatelessWidget {
 //          var uri = await _uploadImage(image);
           print(image);
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UploadPage(image: image),
-            ),
-          );
+          if (image != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UploadPage(image: image),
+              ),
+            );
+          }
           break;
         case 'take':
           var image = await ImagePicker.pickImage(source: ImageSource.camera);
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UploadPage(image: image),
-            ),
-          );
+          if (image != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UploadPage(image: image),
+              ),
+            );
+          }
           break;
       }
     }
