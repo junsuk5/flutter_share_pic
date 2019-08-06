@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:location/location.dart';
 
 class UploadPage extends StatefulWidget {
   final File image;
@@ -20,6 +22,7 @@ class _UploadPageState extends State<UploadPage> {
   final descController = TextEditingController();
 
   var _isProgressing = false;
+  double _progressPercent = 0;
 
   Future _uploadImage(File file) async {
     final StorageReference storageReference = FirebaseStorage()
@@ -27,7 +30,15 @@ class _UploadPageState extends State<UploadPage> {
         .child('images2/${DateTime.now().millisecondsSinceEpoch}.jpg');
     final StorageUploadTask uploadTask = storageReference.putFile(file);
 
+    final StreamSubscription<StorageTaskEvent> streamSubscription = uploadTask.events.listen((event) {
+      setState(() {
+        _progressPercent = event.snapshot.bytesTransferred / event.snapshot.totalByteCount;
+      });
+    });
+
+    // Cancel your subscription when done.
     await uploadTask.onComplete;
+    streamSubscription.cancel();
 
     return await storageReference.getDownloadURL();
   }
@@ -60,6 +71,10 @@ class _UploadPageState extends State<UploadPage> {
                     '업로드할 사진',
                     textAlign: TextAlign.center,
                   ),
+                  if (_isProgressing)
+                    LinearProgressIndicator(
+                      value: _progressPercent,
+                    ),
                   SizedBox(
                     height: 20,
                   ),
@@ -89,18 +104,34 @@ class _UploadPageState extends State<UploadPage> {
                     ),
                     onPressed: () async {
                       setState(() {
+                        _progressPercent = 0;
                         _isProgressing = true;
                       });
 
+                      // 현재 위치 정보
+                      LocationData currentLocation;
+                      try {
+                        currentLocation = await Location().getLocation();
+                      } catch (e) {
+                        // 권한 거부
+                        if (e.code == 'PERMISSION_DENIED') {
+                          print('Permission denied');
+                        }
+                      }
+
+                      // 사진 업로드
                       var downloadUrl = await _uploadImage(widget.image);
 
+                      // DB에 기록
                       await Firestore.instance
                           .collection('share_pic')
                           .document()
                           .setData({
                         'name': nameController.text,
                         'description': descController.text,
-                        'imageUrl': downloadUrl
+                        'imageUrl': downloadUrl,
+                        'lat': currentLocation?.latitude ?? 0.0,
+                        'lng': currentLocation?.longitude ?? 0.0,
                       });
 
                       setState(() {
@@ -112,9 +143,10 @@ class _UploadPageState extends State<UploadPage> {
                   ),
                 ],
               ),
-              Center(
-                child: _isProgressing ? CircularProgressIndicator() : null,
-              ),
+              if (_isProgressing)
+                Center(
+                  child: CircularProgressIndicator(),
+                ),
             ],
           ),
         ),
