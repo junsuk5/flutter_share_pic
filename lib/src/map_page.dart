@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_share_pic/src/detail_page.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapPage extends StatefulWidget {
   @override
@@ -31,18 +32,33 @@ class MapPageState extends State<MapPage> {
   void initState() {
     Firestore.instance.collection('share_pic').snapshots().listen((event) {
       event.documents.forEach((document) {
-        _markerIdCounter++;
-        final Marker marker = Marker(
-          markerId: MarkerId('$_markerIdCounter'),
-          position: LatLng(document['lat'], document['lng']),
-          infoWindow: InfoWindow(title: document['description'], snippet: document['name']),
-        );
+        final double lat = document['lat'] ?? 0.0;
+        final double lng = document['lng'] ?? 0.0;
 
-        setState(() {
-          markers[marker.markerId] = marker;
-        });
+        if (lat != 0.0 && lng != 0.0) {
+          _markerIdCounter++;
+          final Marker marker = Marker(
+            markerId: MarkerId('$_markerIdCounter'),
+            position: LatLng(lat, lng),
+            infoWindow: InfoWindow(
+              title: document['description'],
+              snippet: document['name'],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          DetailPage(snapshot: document,)),
+                );
+              },
+            ),
+          );
+
+          setState(() {
+            markers[marker.markerId] = marker;
+          });
+        }
       });
-
     });
 
     super.initState();
@@ -55,13 +71,14 @@ class MapPageState extends State<MapPage> {
         title: Text('공유 사진 보기'),
       ),
       body: GoogleMap(
-        mapType: MapType.hybrid,
+        mapType: MapType.normal,
         initialCameraPosition: _kGooglePlex,
         onMapCreated: (GoogleMapController controller) {
           _controller.complete(controller);
         },
-        markers: Set<Marker>.of(markers.values),    // 마커 추가
-        myLocationEnabled: true,  // 현재 위치로 이동 버튼 추가
+        markers: Set<Marker>.of(markers.values),
+        // 마커 추가
+        myLocationEnabled: true, // 현재 위치로 이동 버튼 추가
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _goToTheLake,
