@@ -17,6 +17,8 @@ class MapPageState extends State<MapPage> {
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   int _markerIdCounter = 0;
 
+  StreamSubscription _subscription;
+
   static final CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
     zoom: 14.4746,
@@ -30,7 +32,8 @@ class MapPageState extends State<MapPage> {
 
   @override
   void initState() {
-    Firestore.instance.collection('share_pic').snapshots().listen((event) {
+    super.initState();
+    _subscription = Firestore.instance.collection('share_pic').snapshots().listen((event) {
       event.documents.forEach((document) {
         final double lat = document['lat'] ?? 0.0;
         final double lng = document['lng'] ?? 0.0;
@@ -60,8 +63,12 @@ class MapPageState extends State<MapPage> {
         }
       });
     });
+  }
 
-    super.initState();
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   @override

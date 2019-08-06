@@ -45,6 +45,7 @@ class MainPage extends StatelessWidget {
           break;
         case 'take':
           var image = await ImagePicker.pickImage(source: ImageSource.camera);
+          print(image);
 
           if (image != null) {
             Navigator.push(
